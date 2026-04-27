@@ -1,0 +1,1410 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>KaloriCut — App</title>
+
+<!-- PWA Meta -->
+<meta name="application-name" content="KaloriCut">
+<meta name="description" content="Lacak kalori harian, foto makanan, dan capai defisit kalori untuk turun berat badan.">
+<meta name="theme-color" content="#0e0f0d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KaloriCut">
+
+<!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Apple Touch Icons (inline SVG → base64 png via canvas trick not needed, use data URI icon) -->
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,300;400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0e0f0d;
+  --surface: #161714;
+  --surface2: #1e1f1c;
+  --surface3: #272824;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #f0efe8;
+  --text2: #9a9a8e;
+  --text3: #5a5a52;
+  --accent: #c8f55a;
+  --accent-dim: rgba(200,245,90,0.12);
+  --accent-text: #1a2600;
+  --warn: #ff6b35;
+  --warn-dim: rgba(255,107,53,0.12);
+  --good: #c8f55a;
+  --bad: #ff6b35;
+  --r: 12px;
+  --r-sm: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+input, select, button { font-family: inherit; }
+
+/* ── LAYOUT ── */
+.app { max-width: 480px; margin: 0 auto; padding: 0 16px calc(80px + env(safe-area-inset-bottom)); padding-top: env(safe-area-inset-top); }
+
+/* ── HEADER ── */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 0 16px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+.logo { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; color: var(--accent); letter-spacing: -0.5px; }
+.logo span { color: var(--text2); font-weight: 300; }
+.profile-chip {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 20px; padding: 6px 12px;
+  font-size: 12px; color: var(--text2); cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  transition: border-color 0.2s;
+}
+.profile-chip:hover { border-color: var(--accent); color: var(--accent); }
+.profile-chip .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; }
+
+/* ── SECTIONS ── */
+.section { display: none; }
+.section.active { display: block; }
+
+/* ── ONBOARDING ── */
+.onboard-title {
+  font-family: 'Fraunces', serif;
+  font-size: 32px; font-weight: 400; line-height: 1.2;
+  margin-bottom: 8px; color: var(--text);
+}
+.onboard-title em { font-style: italic; color: var(--accent); }
+.onboard-sub { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
+
+.form-group { margin-bottom: 20px; }
+.form-label { font-size: 12px; font-weight: 500; color: var(--text2); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; display: block; }
+.form-input {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r-sm); padding: 12px 14px;
+  color: var(--text); font-size: 15px;
+  outline: none; transition: border-color 0.2s;
+  -webkit-appearance: none; appearance: none;
+}
+.form-input:focus { border-color: var(--accent); }
+.form-input option { background: #1e1f1c; }
+
+.gender-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gender-btn {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r-sm); padding: 14px;
+  color: var(--text2); font-size: 14px;
+  cursor: pointer; text-align: center; transition: all 0.2s;
+}
+.gender-btn.selected { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.input-unit { position: relative; }
+.input-unit .form-input { padding-right: 40px; }
+.input-unit .unit {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace;
+}
+
+.deficit-slider-wrap { position: relative; }
+.deficit-slider-wrap input[type=range] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 4px;
+  background: var(--surface3); border-radius: 2px; outline: none;
+  border: none; padding: 0;
+}
+.deficit-slider-wrap input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 18px; height: 18px;
+  background: var(--accent); border-radius: 50%; cursor: pointer;
+  border: 2px solid var(--bg);
+}
+.deficit-val {
+  display: inline-block; margin-top: 10px;
+  font-family: 'DM Mono', monospace; font-size: 28px; font-weight: 500; color: var(--accent);
+}
+.deficit-desc { font-size: 12px; color: var(--text2); margin-left: 4px; }
+
+.submit-btn {
+  width: 100%; padding: 15px;
+  background: var(--accent); color: var(--accent-text);
+  border: none; border-radius: var(--r); font-size: 15px; font-weight: 600;
+  cursor: pointer; margin-top: 8px; transition: opacity 0.2s, transform 0.1s;
+  letter-spacing: 0.02em;
+}
+.submit-btn:hover { opacity: 0.9; }
+.submit-btn:active { transform: scale(0.98); }
+
+/* ── DASHBOARD ── */
+.date-label { font-size: 12px; color: var(--text3); font-family: 'DM Mono', monospace; margin-bottom: 16px; }
+
+.calorie-ring-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px 20px;
+  margin-bottom: 20px;
+  display: flex; align-items: center; gap: 24px;
+}
+.ring-container { position: relative; flex-shrink: 0; }
+.ring-container svg { transform: rotate(-90deg); }
+.ring-center {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  text-align: center; pointer-events: none;
+}
+.ring-consumed { font-size: 26px; font-weight: 600; color: var(--text); font-family: 'Fraunces', serif; line-height: 1; }
+.ring-label { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; margin-top: 2px; }
+.ring-info { flex: 1; }
+.ring-info .big-num { font-family: 'Fraunces', serif; font-size: 38px; font-weight: 400; line-height: 1; color: var(--text); }
+.ring-info .big-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+.remaining-row { margin-top: 8px; }
+.remaining-num { font-size: 20px; font-weight: 600; }
+.remaining-label { font-size: 12px; color: var(--text2); }
+.remaining-num.green { color: var(--accent); }
+.remaining-num.red { color: var(--warn); }
+
+/* ── STATUS BANNER ── */
+.status-banner {
+  border-radius: var(--r); padding: 14px 16px;
+  margin-bottom: 20px; display: none;
+  align-items: flex-start; gap: 12px;
+}
+.status-banner.show { display: flex; }
+.status-banner.deficit { background: var(--accent-dim); border: 1px solid rgba(200,245,90,0.25); }
+.status-banner.surplus { background: var(--warn-dim); border: 1px solid rgba(255,107,53,0.25); }
+.status-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+.status-title { font-size: 14px; font-weight: 600; }
+.status-title.green { color: var(--accent); }
+.status-title.orange { color: var(--warn); }
+.status-desc { font-size: 12px; color: var(--text2); margin-top: 2px; line-height: 1.5; }
+
+/* ── MACROS ── */
+.macro-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 20px; }
+.macro-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 12px;
+  text-align: center;
+}
+.macro-val { font-size: 20px; font-weight: 600; font-family: 'Fraunces', serif; }
+.macro-unit { font-size: 10px; color: var(--text3); font-family: 'DM Mono', monospace; }
+.macro-name { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.macro-bar-wrap { height: 3px; background: var(--surface3); border-radius: 2px; margin-top: 8px; }
+.macro-bar { height: 3px; border-radius: 2px; transition: width 0.5s; }
+.macro-bar.carb { background: #7eb8ff; }
+.macro-bar.prot { background: var(--accent); }
+.macro-bar.fat { background: #ffb347; }
+
+/* ── MEAL SECTIONS ── */
+.meals-title {
+  font-size: 11px; color: var(--text3); text-transform: uppercase;
+  letter-spacing: 0.1em; font-family: 'DM Mono', monospace; margin-bottom: 14px;
+}
+.meal-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); margin-bottom: 10px; overflow: hidden;
+}
+.meal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; cursor: pointer;
+}
+.meal-left { display: flex; align-items: center; gap: 12px; }
+.meal-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
+}
+.meal-icon.sarapan { background: rgba(255,200,50,0.15); }
+.meal-icon.siang { background: rgba(255,100,50,0.15); }
+.meal-icon.camilan { background: rgba(100,200,100,0.15); }
+.meal-icon.minum { background: rgba(100,150,255,0.15); }
+.meal-icon.malam { background: rgba(150,100,255,0.15); }
+.meal-name { font-size: 14px; font-weight: 500; }
+.meal-time { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+.meal-right { display: flex; align-items: center; gap: 10px; }
+.meal-kal { font-size: 14px; font-weight: 600; font-family: 'Fraunces', serif; }
+.meal-kal.zero { color: var(--text3); }
+.meal-kal.has-data { color: var(--accent); }
+.add-btn {
+  background: var(--surface3); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 6px 12px;
+  color: var(--text2); font-size: 12px; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap;
+}
+.add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+.meal-items { border-top: 1px solid var(--border); padding: 12px 16px; display: none; }
+.meal-items.open { display: block; }
+.meal-item-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+}
+.meal-item-row:last-child { border-bottom: none; }
+.meal-item-name { font-size: 13px; }
+.meal-item-portion { font-size: 11px; color: var(--text3); margin-top: 1px; }
+.meal-item-kcal { font-size: 13px; font-weight: 500; color: var(--accent); font-family: 'DM Mono', monospace; }
+.delete-item { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; padding: 2px 6px; margin-left: 8px; }
+.delete-item:hover { color: var(--warn); }
+
+/* ── MODAL ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  display: flex; align-items: flex-end; justify-content: center;
+  z-index: 100; opacity: 0; pointer-events: none;
+  transition: opacity 0.25s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 20px 20px 0 0; padding: 24px 20px 40px;
+  width: 100%; max-width: 480px;
+  transform: translateY(20px); transition: transform 0.25s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 400; margin-bottom: 4px; }
+.modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+
+.photo-zone {
+  border: 1.5px dashed var(--border2); border-radius: var(--r);
+  padding: 28px 16px; text-align: center; cursor: pointer;
+  position: relative; transition: border-color 0.2s;
+  margin-bottom: 14px; background: var(--surface2);
+}
+.photo-zone:hover { border-color: var(--accent); }
+.photo-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.photo-zone-icon { font-size: 32px; margin-bottom: 8px; }
+.photo-zone-text { font-size: 13px; color: var(--text2); }
+.photo-zone-text strong { color: var(--text); display: block; margin-bottom: 2px; }
+.photo-preview { width: 100%; border-radius: var(--r-sm); max-height: 200px; object-fit: cover; margin-bottom: 14px; display: none; }
+
+.analyze-modal-btn {
+  width: 100%; padding: 13px;
+  background: var(--accent); color: var(--accent-text);
+  border: none; border-radius: var(--r); font-size: 15px; font-weight: 600;
+  cursor: pointer; transition: opacity 0.2s;
+}
+.analyze-modal-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.loading-state { text-align: center; padding: 20px 0; }
+.mini-spinner {
+  width: 28px; height: 28px; border: 2px solid var(--surface3);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 0.8s linear infinite; margin: 0 auto 10px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 13px; color: var(--text2); }
+
+.result-preview {
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r); padding: 14px; margin-bottom: 14px; display: none;
+}
+.result-food-name { font-size: 16px; font-weight: 600; margin-bottom: 10px; }
+.result-kcal-big {
+  font-family: 'Fraunces', serif; font-size: 36px; font-weight: 400;
+  color: var(--accent); line-height: 1;
+}
+.result-kcal-label { font-size: 11px; color: var(--text2); margin-bottom: 10px; }
+.result-macros-mini { display: flex; gap: 16px; }
+.result-macro-mini { font-size: 12px; color: var(--text2); }
+.result-macro-mini span { color: var(--text); font-weight: 500; }
+.confirm-btn {
+  width: 100%; padding: 13px;
+  background: var(--surface3); border: 1px solid var(--border2);
+  border-radius: var(--r); font-size: 14px; font-weight: 500; color: var(--text);
+  cursor: pointer; transition: all 0.2s;
+}
+.confirm-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cancel-btn {
+  width: 100%; padding: 11px; background: none; border: none;
+  color: var(--text3); font-size: 13px; cursor: pointer; margin-top: 8px;
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(14,15,13,0.92); border-top: 1px solid var(--border);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  display: flex; justify-content: center; gap: 0;
+  padding: 8px 0 16px; z-index: 50;
+}
+.nav-btn {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 8px 24px; background: none; border: none;
+  color: var(--text3); font-size: 10px; cursor: pointer; transition: color 0.2s;
+}
+.nav-btn.active { color: var(--accent); }
+.nav-icon { font-size: 20px; }
+
+/* ── PROFILE VIEW ── */
+.profile-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 20px; margin-bottom: 16px;
+}
+.profile-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.profile-row:last-child { border-bottom: none; }
+.profile-key { font-size: 13px; color: var(--text2); }
+.profile-val { font-size: 14px; font-weight: 500; font-family: 'DM Mono', monospace; }
+.tdee-highlight {
+  background: var(--accent-dim); border: 1px solid rgba(200,245,90,0.2);
+  border-radius: var(--r); padding: 16px; margin-bottom: 16px; text-align: center;
+}
+.tdee-big { font-family: 'Fraunces', serif; font-size: 48px; font-weight: 400; color: var(--accent); line-height: 1; }
+.tdee-label { font-size: 12px; color: var(--text2); margin-top: 4px; }
+.target-row { display: flex; justify-content: space-between; margin-top: 12px; }
+.target-item { text-align: center; }
+.target-num { font-size: 22px; font-weight: 600; color: var(--text); font-family: 'Fraunces', serif; }
+.target-desc { font-size: 11px; color: var(--text2); }
+.edit-profile-btn {
+  width: 100%; padding: 12px;
+  background: var(--surface3); border: 1px solid var(--border2);
+  border-radius: var(--r); font-size: 14px; color: var(--text2);
+  cursor: pointer; transition: all 0.2s;
+}
+.edit-profile-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── WEIGHT LOSS PANEL ── */
+.wl-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+.wl-panel-header {
+  background: linear-gradient(135deg, rgba(200,245,90,0.08) 0%, rgba(200,245,90,0.03) 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.wl-icon { font-size: 20px; }
+.wl-header-text h3 { font-size: 14px; font-weight: 500; color: var(--text); }
+.wl-header-text p { font-size: 12px; color: var(--text2); margin-top: 1px; }
+
+.wl-science {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(200,245,90,0.04);
+}
+.wl-science-row { display: flex; align-items: flex-start; gap: 10px; }
+.wl-science-icon { font-size: 14px; margin-top: 2px; flex-shrink: 0; }
+.wl-science-text { font-size: 13px; color: var(--text2); line-height: 1.6; }
+.wl-science-text strong { color: var(--accent); }
+
+.wl-scenarios { padding: 14px 16px; }
+.wl-scenarios-title { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-family: 'DM Mono', monospace; margin-bottom: 12px; }
+.wl-scenario {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.wl-scenario.recommended {
+  border-color: rgba(200,245,90,0.3);
+  background: rgba(200,245,90,0.05);
+}
+.wl-scenario.current-match {
+  border-color: rgba(100,150,255,0.35);
+  background: rgba(100,150,255,0.05);
+}
+.wl-scenario.warning {
+  border-color: rgba(255,107,53,0.3);
+  background: rgba(255,107,53,0.04);
+}
+.wl-scenario-badge {
+  display: inline-block;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+  padding: 2px 8px; border-radius: 10px; margin-bottom: 8px;
+  text-transform: uppercase;
+}
+.badge-rec  { background: rgba(200,245,90,0.2); color: var(--accent); }
+.badge-cur  { background: rgba(100,150,255,0.2); color: #7eb8ff; }
+.badge-warn { background: rgba(255,107,53,0.2); color: var(--warn); }
+
+.wl-scenario-main { display: flex; justify-content: space-between; align-items: flex-end; }
+.wl-s-left {}
+.wl-s-name { font-size: 14px; font-weight: 500; color: var(--text); }
+.wl-s-cal  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+.wl-s-right { text-align: right; }
+.wl-s-weeks { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 400; color: var(--text); line-height: 1; }
+.wl-s-weeks-label { font-size: 11px; color: var(--text3); }
+
+.wl-timeline {
+  margin-top: 10px; padding-top: 10px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.wl-tl-item { font-size: 11px; color: var(--text2); }
+.wl-tl-item span { color: var(--text); font-weight: 500; }
+
+.wl-goal-input-wrap {
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border);
+}
+.wl-goal-label { font-size: 12px; color: var(--text2); padding: 12px 0 8px; display: block; }
+.wl-goal-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.wl-apply-btn {
+  background: var(--accent-dim); border: 1px solid rgba(200,245,90,0.25);
+  border-radius: var(--r-sm); padding: 10px;
+  color: var(--accent); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all 0.2s; text-align: center;
+  grid-column: 1 / -1;
+}
+.wl-apply-btn:hover { background: rgba(200,245,90,0.2); }
+
+/* ── INSTALL BANNER ── */
+.install-banner {
+  position: fixed; bottom: calc(70px + env(safe-area-inset-bottom)); left: 12px; right: 12px;
+  background: var(--surface); border: 1px solid rgba(200,245,90,0.3);
+  border-radius: var(--r); padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px;
+  z-index: 200; box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  transform: translateY(10px); opacity: 0;
+  animation: slideUp 0.3s ease 1.5s forwards;
+}
+@keyframes slideUp { to { transform: translateY(0); opacity: 1; } }
+.install-banner .ib-icon { font-size: 28px; flex-shrink: 0; }
+.install-banner .ib-text { flex: 1; }
+.install-banner .ib-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.install-banner .ib-sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
+.install-banner .ib-btn {
+  background: var(--accent); color: var(--accent-text);
+  border: none; border-radius: var(--r-sm); padding: 8px 14px;
+  font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.install-banner .ib-close {
+  background: none; border: none; color: var(--text3); cursor: pointer; font-size: 18px; flex-shrink: 0;
+}
+
+/* ── HISTORY ── */
+.history-day {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 14px 16px; margin-bottom: 10px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.hist-date { font-size: 13px; font-weight: 500; }
+.hist-sub { font-size: 11px; color: var(--text3); font-family: 'DM Mono', monospace; }
+.hist-badge {
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+}
+.hist-badge.def { background: var(--accent-dim); color: var(--accent); }
+.hist-badge.sur { background: var(--warn-dim); color: var(--warn); }
+.empty-hist { text-align: center; padding: 40px 0; color: var(--text3); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="app" id="appRoot">
+
+  <!-- ONBOARDING -->
+  <div id="sec-onboard" class="section active">
+    <div class="top-bar">
+      <div class="logo">Kalori<span>Cut</span></div>
+    </div>
+    <p class="onboard-title">Hitung kalori,<br><em>capai defisit.</em></p>
+    <p class="onboard-sub">Masukkan data diri Anda sekali. AI akan menghitung kebutuhan kalori dan melacak setiap makanan yang Anda makan.</p>
+
+    <div class="form-group">
+      <label class="form-label">Jenis Kelamin</label>
+      <div class="gender-row">
+        <button class="gender-btn selected" data-gender="L" onclick="selectGender('L', this)">♂ Laki-laki</button>
+        <button class="gender-btn" data-gender="P" onclick="selectGender('P', this)">♀ Perempuan</button>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="form-group">
+        <label class="form-label">Usia</label>
+        <div class="input-unit">
+          <input class="form-input" type="number" id="inp-usia" placeholder="25" min="10" max="90">
+          <span class="unit">thn</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Berat Badan</label>
+        <div class="input-unit">
+          <input class="form-input" type="number" id="inp-berat" placeholder="65" min="30" max="250">
+          <span class="unit">kg</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Tinggi Badan</label>
+      <div class="input-unit">
+        <input class="form-input" type="number" id="inp-tinggi" placeholder="165" min="100" max="230">
+        <span class="unit">cm</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Tingkat Aktivitas</label>
+      <select class="form-input" id="inp-aktivitas">
+        <option value="1.2">Sedentary — Jarang olahraga / kerja kantoran</option>
+        <option value="1.375">Ringan — Olahraga 1–3x seminggu</option>
+        <option value="1.55" selected>Sedang — Olahraga 3–5x seminggu</option>
+        <option value="1.725">Aktif — Olahraga 6–7x seminggu</option>
+        <option value="1.9">Sangat Aktif — Atlet / kerja fisik berat</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Target Defisit Kalori</label>
+      <div class="deficit-slider-wrap">
+        <input type="range" min="5" max="30" value="15" step="5" id="inp-defisit" oninput="updateDefisit(this.value)">
+      </div>
+      <span class="deficit-val" id="defisit-val">15%</span>
+      <span class="deficit-desc" id="defisit-desc">— Defisit sedang, aman untuk diet harian</span>
+    </div>
+
+    <button class="submit-btn" onclick="submitProfile()">Mulai Lacak Kalori →</button>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="sec-dashboard" class="section">
+    <div class="top-bar">
+      <div class="logo">Kalori<span>Cut</span></div>
+      <div class="profile-chip" onclick="showSection('profile')">
+        <span class="dot"></span>
+        <span id="chip-name">Profil</span>
+      </div>
+    </div>
+
+    <div class="date-label" id="today-label"></div>
+
+    <!-- Ring -->
+    <div class="calorie-ring-wrap">
+      <div class="ring-container">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="46" fill="none" stroke="#272824" stroke-width="8"/>
+          <circle id="ring-progress" cx="55" cy="55" r="46" fill="none"
+            stroke="#c8f55a" stroke-width="8"
+            stroke-linecap="round"
+            stroke-dasharray="289 289"
+            stroke-dashoffset="289"
+            style="transition: stroke-dashoffset 0.6s ease, stroke 0.3s"/>
+        </svg>
+        <div class="ring-center">
+          <div class="ring-consumed" id="ring-consumed">0</div>
+          <div class="ring-label">KKAL</div>
+        </div>
+      </div>
+      <div class="ring-info">
+        <div class="big-num" id="dash-target">—</div>
+        <div class="big-label">Target harian</div>
+        <div class="remaining-row">
+          <span class="remaining-num green" id="dash-remaining">—</span>
+          <span class="remaining-label" id="dash-remaining-label"> kkal tersisa</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status banner -->
+    <div class="status-banner" id="status-banner">
+      <div class="status-icon" id="status-icon"></div>
+      <div>
+        <div class="status-title" id="status-title"></div>
+        <div class="status-desc" id="status-desc"></div>
+      </div>
+    </div>
+
+    <!-- Macros -->
+    <div class="macro-row">
+      <div class="macro-card">
+        <div class="macro-val" id="m-carb">0<span class="macro-unit">g</span></div>
+        <div class="macro-name">Karbohidrat</div>
+        <div class="macro-bar-wrap"><div class="macro-bar carb" id="b-carb" style="width:0%"></div></div>
+      </div>
+      <div class="macro-card">
+        <div class="macro-val" id="m-prot">0<span class="macro-unit">g</span></div>
+        <div class="macro-name">Protein</div>
+        <div class="macro-bar-wrap"><div class="macro-bar prot" id="b-prot" style="width:0%"></div></div>
+      </div>
+      <div class="macro-card">
+        <div class="macro-val" id="m-fat">0<span class="macro-unit">g</span></div>
+        <div class="macro-name">Lemak</div>
+        <div class="macro-bar-wrap"><div class="macro-bar fat" id="b-fat" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Meals -->
+    <div class="meals-title">Catatan Makan Hari Ini</div>
+    <div id="meals-container"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="sec-profile" class="section">
+    <div class="top-bar">
+      <div class="logo">Kalori<span>Cut</span></div>
+    </div>
+    <div class="tdee-highlight">
+      <div class="tdee-big" id="prof-tdee">—</div>
+      <div class="tdee-label">TDEE — Total kalori yang Anda butuhkan per hari</div>
+      <div class="target-row">
+        <div class="target-item">
+          <div class="target-num" id="prof-target">—</div>
+          <div class="target-desc">Target kalori</div>
+        </div>
+        <div class="target-item">
+          <div class="target-num" id="prof-defisit">—</div>
+          <div class="target-desc">Defisit kkal/hari</div>
+        </div>
+        <div class="target-item">
+          <div class="target-num" id="prof-bmr">—</div>
+          <div class="target-desc">BMR</div>
+        </div>
+      </div>
+    </div>
+    <div class="profile-card" id="profile-details"></div>
+
+    <!-- Weight Loss Recommendation Panel -->
+    <div class="wl-panel" id="wl-panel" style="margin-top:16px;">
+      <div class="wl-panel-header">
+        <span class="wl-icon">🎯</span>
+        <div class="wl-header-text">
+          <h3>Saran Defisit untuk Turun Berat Badan</h3>
+          <p>Simulasi berdasarkan TDEE dan berat badan Anda</p>
+        </div>
+      </div>
+      <div class="wl-science">
+        <div class="wl-science-row">
+          <span class="wl-science-icon">💡</span>
+          <div class="wl-science-text">
+            <strong>Dasar ilmiah:</strong> 1 kg lemak tubuh ≈ 7.700 kkal. Untuk turun 1 kg/minggu dibutuhkan defisit <strong>1.100 kkal/hari</strong> — ini agresif. Defisit <strong>500–750 kkal/hari</strong> (0,5 kg/minggu) jauh lebih aman, berkelanjutan, dan menjaga massa otot.
+          </div>
+        </div>
+      </div>
+      <div class="wl-scenarios">
+        <div class="wl-scenarios-title">Simulasi skenario defisit</div>
+        <div id="wl-scenarios-list"></div>
+      </div>
+      <div class="wl-goal-input-wrap">
+        <label class="wl-goal-label">Simulasikan target berat Anda sendiri:</label>
+        <div class="wl-goal-row">
+          <div class="input-unit">
+            <input class="form-input" type="number" id="wl-target-berat" placeholder="Target (kg)" min="30" max="200">
+            <span class="unit">kg</span>
+          </div>
+          <div class="input-unit">
+            <input class="form-input" type="number" id="wl-deficit-harian" placeholder="Defisit/hari" min="100" max="1500">
+            <span class="unit">kkal</span>
+          </div>
+          <button class="wl-apply-btn" onclick="simulateGoal()">Hitung estimasi waktu →</button>
+        </div>
+        <div id="wl-simulation-result" style="margin-top:12px;"></div>
+      </div>
+    </div>
+
+    <button class="edit-profile-btn" onclick="editProfile()" style="margin-top:16px;">Edit Profil</button>
+    <button class="edit-profile-btn" onclick="doLogout()" style="margin-top:8px;color:var(--warn);border-color:rgba(255,107,53,0.3);">Keluar dari Akun</button>
+  </div>
+
+  <!-- HISTORY -->
+  <div id="sec-history" class="section">
+    <div class="top-bar">
+      <div class="logo">Kalori<span>Cut</span></div>
+    </div>
+    <div class="meals-title">Riwayat Harian</div>
+    <div id="history-list"></div>
+  </div>
+
+</div>
+
+<!-- INSTALL BANNER -->
+<div class="install-banner" id="install-banner" style="display:none;">
+  <span class="ib-icon">📲</span>
+  <div class="ib-text">
+    <div class="ib-title">Instal KaloriCut</div>
+    <div class="ib-sub">Tambahkan ke home screen, pakai seperti app</div>
+  </div>
+  <button class="ib-btn" id="install-btn">Instal</button>
+  <button class="ib-close" onclick="dismissInstall()">×</button>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav" style="display:none;">
+  <button class="nav-btn active" id="nav-dash" onclick="showSection('dashboard')">
+    <span class="nav-icon">◎</span>Dashboard
+  </button>
+  <button class="nav-btn" id="nav-history" onclick="showSection('history')">
+    <span class="nav-icon">▤</span>Riwayat
+  </button>
+  <button class="nav-btn" id="nav-profile" onclick="showSection('profile')">
+    <span class="nav-icon">◉</span>Profil
+  </button>
+</nav>
+
+<!-- PHOTO MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">Foto Makanan</div>
+    <div class="modal-sub" id="modal-sub">Ambil foto atau pilih dari galeri</div>
+
+    <div id="modal-phase-upload">
+      <div class="photo-zone" id="photo-zone">
+        <input type="file" accept="image/*" capture="environment" id="modal-file-input">
+        <div class="photo-zone-icon">📷</div>
+        <div class="photo-zone-text">
+          <strong>Ketuk untuk foto</strong>
+          JPG, PNG, WEBP
+        </div>
+      </div>
+      <img id="modal-preview" class="photo-preview" alt="" />
+      <button class="analyze-modal-btn" id="modal-analyze-btn" disabled onclick="analyzePhoto()">Analisis dengan AI</button>
+      <button class="cancel-btn" onclick="closeModal()">Batal</button>
+    </div>
+
+    <div id="modal-phase-loading" style="display:none;">
+      <div class="loading-state">
+        <div class="mini-spinner"></div>
+        <div class="loading-text" id="modal-loading-text">Mendeteksi makanan...</div>
+      </div>
+    </div>
+
+    <div id="modal-phase-result" style="display:none;">
+      <div class="result-preview" id="modal-result-preview">
+        <div class="result-food-name" id="res-name"></div>
+        <div class="result-kcal-big" id="res-kcal"></div>
+        <div class="result-kcal-label">kkal total</div>
+        <div class="result-macros-mini">
+          <div class="result-macro-mini">Karbo: <span id="res-carb"></span>g</div>
+          <div class="result-macro-mini">Protein: <span id="res-prot"></span>g</div>
+          <div class="result-macro-mini">Lemak: <span id="res-fat"></span>g</div>
+        </div>
+      </div>
+      <button class="analyze-modal-btn" onclick="confirmAdd()">Tambahkan ke Log ✓</button>
+      <button class="cancel-btn" onclick="retakePhoto()">Foto ulang</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──
+let profile = null;
+let currentMealType = null;
+let currentBase64 = null;
+let currentMime = null;
+let pendingResult = null;
+
+const MEAL_CONFIG = [
+  { key: 'sarapan', label: 'Sarapan', icon: '🌅', cls: 'sarapan', time: '06.00 – 09.00' },
+  { key: 'siang',   label: 'Makan Siang', icon: '🍚', cls: 'siang',   time: '11.00 – 13.00' },
+  { key: 'camilan', label: 'Camilan / Snack', icon: '🍌', cls: 'camilan', time: 'Kapan saja' },
+  { key: 'minum',   label: 'Minuman', icon: '🧃', cls: 'minum',   time: 'Sepanjang hari' },
+  { key: 'malam',   label: 'Makan Malam', icon: '🌙', cls: 'malam',   time: '18.00 – 20.00' },
+];
+
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+function getTodayLog() {
+  const key = 'log_' + todayKey();
+  const raw = localStorage.getItem(key);
+  return raw ? JSON.parse(raw) : { sarapan:[], siang:[], camilan:[], minum:[], malam:[] };
+}
+
+function saveTodayLog(log) {
+  const key = 'log_' + todayKey();
+  localStorage.setItem(key, JSON.stringify(log));
+}
+
+// ── ONBOARDING ──
+let selectedGender = 'L';
+function selectGender(g, el) {
+  selectedGender = g;
+  document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function updateDefisit(v) {
+  document.getElementById('defisit-val').textContent = v + '%';
+  const desc = v <= 10 ? '— Defisit ringan, sangat aman & lambat'
+             : v <= 20 ? '— Defisit sedang, aman untuk diet harian'
+             : v <= 25 ? '— Defisit agresif, perlu pengawasan'
+             : '— Defisit ekstrem, tidak disarankan jangka panjang';
+  document.getElementById('defisit-desc').textContent = desc;
+}
+
+function submitProfile() {
+  const usia    = parseInt(document.getElementById('inp-usia').value);
+  const berat   = parseFloat(document.getElementById('inp-berat').value);
+  const tinggi  = parseFloat(document.getElementById('inp-tinggi').value);
+  const akt     = parseFloat(document.getElementById('inp-aktivitas').value);
+  const def     = parseInt(document.getElementById('inp-defisit').value);
+
+  if (!usia || !berat || !tinggi) { alert('Lengkapi semua data ya!'); return; }
+
+  // Mifflin-St Jeor
+  let bmr = selectedGender === 'L'
+    ? (10 * berat) + (6.25 * tinggi) - (5 * usia) + 5
+    : (10 * berat) + (6.25 * tinggi) - (5 * usia) - 161;
+
+  const tdee   = Math.round(bmr * akt);
+  const target = Math.round(tdee * (1 - def/100));
+  const bmi    = (berat / ((tinggi/100)**2)).toFixed(1);
+
+  profile = { gender: selectedGender, usia, berat, tinggi, aktivitas: akt, defisit: def, bmr: Math.round(bmr), tdee, target, bmi };
+  localStorage.setItem('kc_profile', JSON.stringify(profile));
+
+  initDashboard();
+}
+
+// ── DASHBOARD ──
+function initDashboard() {
+  if (!profile) return;
+  document.getElementById('bottom-nav').style.display = 'flex';
+
+  const d = new Date();
+  const days = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  document.getElementById('today-label').textContent =
+    `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+
+  document.getElementById('dash-target').textContent = profile.target.toLocaleString('id');
+  document.getElementById('chip-name').textContent = profile.berat + ' kg';
+
+  renderMeals();
+  updateTotals();
+  renderProfile();
+  renderHistory();
+  showSection('dashboard');
+}
+
+function renderMeals() {
+  const log = getTodayLog();
+  const container = document.getElementById('meals-container');
+  container.innerHTML = '';
+
+  MEAL_CONFIG.forEach(m => {
+    const items = log[m.key] || [];
+    const total = items.reduce((s,i) => s+i.kalori, 0);
+    const card = document.createElement('div');
+    card.className = 'meal-card';
+
+    const itemsHtml = items.map((it, idx) => `
+      <div class="meal-item-row">
+        <div>
+          <div class="meal-item-name">${esc(it.nama)}</div>
+          <div class="meal-item-portion">${esc(it.porsi)}</div>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <span class="meal-item-kcal">${it.kalori}</span>
+          <button class="delete-item" onclick="deleteItem('${m.key}', ${idx})">×</button>
+        </div>
+      </div>`).join('');
+
+    card.innerHTML = `
+      <div class="meal-header" onclick="toggleMeal('meal-items-${m.key}')">
+        <div class="meal-left">
+          <div class="meal-icon ${m.cls}">${m.icon}</div>
+          <div>
+            <div class="meal-name">${m.label}</div>
+            <div class="meal-time">${m.time}</div>
+          </div>
+        </div>
+        <div class="meal-right">
+          <span class="meal-kal ${total > 0 ? 'has-data' : 'zero'}">${total > 0 ? total+' kkal' : '—'}</span>
+          <button class="add-btn" onclick="event.stopPropagation(); openModal('${m.key}', '${m.label}')">+ Foto</button>
+        </div>
+      </div>
+      <div class="meal-items ${items.length > 0 ? 'open' : ''}" id="meal-items-${m.key}">
+        ${itemsHtml || '<div style="font-size:13px;color:var(--text3);padding:4px 0;">Belum ada catatan</div>'}
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+function toggleMeal(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+
+function deleteItem(mealKey, idx) {
+  const log = getTodayLog();
+  log[mealKey].splice(idx, 1);
+  saveTodayLog(log);
+  renderMeals();
+  updateTotals();
+}
+
+function updateTotals() {
+  const log = getTodayLog();
+  let totalKal = 0, totalCarb = 0, totalProt = 0, totalFat = 0;
+  Object.values(log).flat().forEach(i => {
+    totalKal  += i.kalori || 0;
+    totalCarb += i.karbo  || 0;
+    totalProt += i.protein|| 0;
+    totalFat  += i.lemak  || 0;
+  });
+
+  // Ring
+  const pct = Math.min(totalKal / profile.target, 1);
+  const circ = 289;
+  const offset = circ - (pct * circ);
+  const ring = document.getElementById('ring-progress');
+  ring.style.strokeDashoffset = offset;
+  ring.style.stroke = pct >= 1 ? '#ff6b35' : '#c8f55a';
+  document.getElementById('ring-consumed').textContent = totalKal.toLocaleString('id');
+
+  // Remaining
+  const rem = profile.target - totalKal;
+  const remEl = document.getElementById('dash-remaining');
+  remEl.textContent = Math.abs(rem).toLocaleString('id');
+  remEl.className = 'remaining-num ' + (rem >= 0 ? 'green' : 'red');
+  document.getElementById('dash-remaining-label').textContent = rem >= 0 ? ' kkal tersisa' : ' kkal melebihi target';
+
+  // Macros
+  document.getElementById('m-carb').innerHTML = `${totalCarb}<span class="macro-unit">g</span>`;
+  document.getElementById('m-prot').innerHTML = `${totalProt}<span class="macro-unit">g</span>`;
+  document.getElementById('m-fat').innerHTML  = `${totalFat}<span class="macro-unit">g</span>`;
+  const maxMacro = Math.max(totalCarb, totalProt, totalFat, 1);
+  document.getElementById('b-carb').style.width = (totalCarb/maxMacro*100) + '%';
+  document.getElementById('b-prot').style.width = (totalProt/maxMacro*100) + '%';
+  document.getElementById('b-fat').style.width  = (totalFat/maxMacro*100) + '%';
+
+  // Status
+  const banner = document.getElementById('status-banner');
+  banner.className = 'status-banner';
+  if (totalKal > 0) {
+    banner.classList.add('show');
+    if (rem >= 0) {
+      banner.classList.add('deficit');
+      document.getElementById('status-icon').textContent = '🎉';
+      document.getElementById('status-title').textContent = 'Selamat! Kamu defisit kalori';
+      document.getElementById('status-title').className = 'status-title green';
+      document.getElementById('status-desc').textContent =
+        `Sudah makan ${totalKal.toLocaleString('id')} kkal dari target ${profile.target.toLocaleString('id')} kkal. Defisit ${Math.abs(rem).toLocaleString('id')} kkal hari ini. Pertahankan!`;
+    } else {
+      banner.classList.add('surplus');
+      document.getElementById('status-icon').textContent = '⚠️';
+      document.getElementById('status-title').textContent = 'Kamu melebihi target kalori!';
+      document.getElementById('status-title').className = 'status-title orange';
+      document.getElementById('status-desc').textContent =
+        `Kamu makan ${totalKal.toLocaleString('id')} kkal, melebihi target sebesar ${Math.abs(rem).toLocaleString('id')} kkal. Kurangi porsi makan berikutnya.`;
+    }
+  }
+
+  // Save daily summary to history
+  const hKey = 'hist_' + todayKey();
+  const existing = localStorage.getItem(hKey) ? JSON.parse(localStorage.getItem(hKey)) : {};
+  localStorage.setItem(hKey, JSON.stringify({ ...existing, totalKal, target: profile.target, rem }));
+}
+
+// ── PROFILE ──
+function renderProfile() {
+  if (!profile) return;
+  document.getElementById('prof-tdee').textContent   = profile.tdee.toLocaleString('id');
+  document.getElementById('prof-target').textContent = profile.target.toLocaleString('id');
+  document.getElementById('prof-defisit').textContent= (profile.tdee - profile.target).toLocaleString('id');
+  document.getElementById('prof-bmr').textContent    = profile.bmr.toLocaleString('id');
+
+  const aktMap = { '1.2':'Sedentary','1.375':'Ringan','1.55':'Sedang','1.725':'Aktif','1.9':'Sangat Aktif' };
+  document.getElementById('profile-details').innerHTML = `
+    <div class="profile-row"><span class="profile-key">Jenis Kelamin</span><span class="profile-val">${profile.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</span></div>
+    <div class="profile-row"><span class="profile-key">Usia</span><span class="profile-val">${profile.usia} tahun</span></div>
+    <div class="profile-row"><span class="profile-key">Berat Badan</span><span class="profile-val">${profile.berat} kg</span></div>
+    <div class="profile-row"><span class="profile-key">Tinggi Badan</span><span class="profile-val">${profile.tinggi} cm</span></div>
+    <div class="profile-row"><span class="profile-key">BMI</span><span class="profile-val">${profile.bmi}</span></div>
+    <div class="profile-row"><span class="profile-key">Aktivitas</span><span class="profile-val">${aktMap[profile.aktivitas+''] || '—'}</span></div>
+    <div class="profile-row"><span class="profile-key">Target Defisit</span><span class="profile-val">${profile.defisit}%</span></div>
+  `;
+  renderWeightLossPanel();
+}
+
+function editProfile() {
+  showSection('onboard');
+  document.getElementById('bottom-nav').style.display = 'none';
+}
+
+// ── WEIGHT LOSS PANEL ──
+function renderWeightLossPanel() {
+  if (!profile) return;
+  const tdee = profile.tdee;
+  const berat = profile.berat;
+
+  // Skenario: defisit harian → turun per minggu → minggu ke target
+  const scenarios = [
+    { name: 'Ringan & Aman', defHari: 300, pctDef: Math.round(300/tdee*100), label: 'badge-rec', cls: 'recommended', tag: 'Direkomendasikan untuk pemula' },
+    { name: 'Sedang (ideal)', defHari: 500, pctDef: Math.round(500/tdee*100), label: 'badge-rec', cls: 'recommended', tag: 'Standar emas diet sehat' },
+    { name: 'Agresif tapi aman', defHari: 750, pctDef: Math.round(750/tdee*100), label: 'badge-cur', cls: 'current-match', tag: 'Maksimal aman untuk kebanyakan orang' },
+    { name: 'Turun 1 kg/minggu', defHari: 1100, pctDef: Math.round(1100/tdee*100), label: 'badge-warn', cls: 'warning', tag: '⚠️ Sangat agresif — perlu pengawasan' },
+  ];
+
+  const targetBerat = Math.max(berat - 5, 50); // simulasi default: turun 5 kg
+  const html = scenarios.map(s => {
+    const turunPerMinggu = (s.defHari * 7 / 7700).toFixed(2);
+    const targetKalori = Math.max(tdee - s.defHari, 1200);
+    const selisih = berat - targetBerat;
+    const minggu = selisih > 0 ? Math.ceil(selisih / (s.defHari * 7 / 7700)) : 0;
+    const bulan = (minggu / 4.3).toFixed(1);
+    const isTooLow = targetKalori < 1200;
+    return `
+    <div class="wl-scenario ${s.cls}">
+      <span class="wl-scenario-badge ${s.label}">${s.tag}</span>
+      <div class="wl-scenario-main">
+        <div class="wl-s-left">
+          <div class="wl-s-name">${s.name}</div>
+          <div class="wl-s-cal">Defisit <strong style="color:var(--text)">${s.defHari.toLocaleString('id')}</strong> kkal/hari → target <strong style="color:var(--text)">${targetKalori.toLocaleString('id')}</strong> kkal/hari${isTooLow ? ' <span style="color:var(--warn);font-size:11px;">⚠ di bawah 1.200 kkal!</span>' : ''}</div>
+        </div>
+        <div class="wl-s-right">
+          <div class="wl-s-weeks">${turunPerMinggu}</div>
+          <div class="wl-s-weeks-label">kg/minggu</div>
+        </div>
+      </div>
+      <div class="wl-timeline">
+        <div class="wl-tl-item">Defisit: <span>${s.pctDef}% dari TDEE</span></div>
+        <div class="wl-tl-item">·</div>
+        <div class="wl-tl-item">Turun 5 kg: <span>~${minggu} minggu (~${bulan} bln)</span></div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('wl-scenarios-list').innerHTML = html;
+
+  // Pre-fill simulator with current body weight minus 5 as default target
+  document.getElementById('wl-target-berat').value = targetBerat;
+  document.getElementById('wl-deficit-harian').value = 500;
+}
+
+function simulateGoal() {
+  if (!profile) return;
+  const targetBerat = parseFloat(document.getElementById('wl-target-berat').value);
+  const defHarian   = parseFloat(document.getElementById('wl-deficit-harian').value);
+  const container   = document.getElementById('wl-simulation-result');
+
+  if (!targetBerat || !defHarian || isNaN(targetBerat) || isNaN(defHarian)) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--text3);">Isi kedua kolom untuk simulasi.</div>';
+    return;
+  }
+  const selisih = profile.berat - targetBerat;
+  if (selisih <= 0) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--warn);">Target berat harus lebih kecil dari berat sekarang.</div>';
+    return;
+  }
+  const kkalPerMinggu = defHarian * 7;
+  const minggu = Math.ceil(selisih / (kkalPerMinggu / 7700));
+  const bulan  = (minggu / 4.3).toFixed(1);
+  const targetKal = Math.round(profile.tdee - defHarian);
+  const isTooLow  = targetKal < 1200;
+  const turunPerMinggu = (kkalPerMinggu / 7700).toFixed(2);
+
+  const d = new Date(); d.setDate(d.getDate() + minggu * 7);
+  const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  const eta = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+
+  container.innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-sm);padding:14px;">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.07em;font-family:'DM Mono',monospace;">Hasil Simulasi</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div style="font-family:'Fraunces',serif;font-size:32px;font-weight:400;color:var(--accent);line-height:1;">${minggu}</div>
+          <div style="font-size:11px;color:var(--text2);">minggu (~${bulan} bulan)</div>
+        </div>
+        <div>
+          <div style="font-family:'Fraunces',serif;font-size:32px;font-weight:400;color:var(--text);line-height:1;">${turunPerMinggu}</div>
+          <div style="font-size:11px;color:var(--text2);">kg/minggu</div>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:10px;display:flex;flex-direction:column;gap:5px;">
+        <div style="font-size:12px;color:var(--text2);">Target kalori harian: <strong style="color:${isTooLow?'var(--warn)':'var(--text)'};">${targetKal.toLocaleString('id')} kkal${isTooLow?' ⚠️ terlalu rendah':''}</strong></div>
+        <div style="font-size:12px;color:var(--text2);">Dari ${profile.berat} kg → <strong style="color:var(--text);">${targetBerat} kg</strong> (turun ${selisih.toFixed(1)} kg)</div>
+        <div style="font-size:12px;color:var(--text2);">Estimasi tercapai: <strong style="color:var(--accent);">${eta}</strong></div>
+      </div>
+      ${isTooLow ? '<div style="margin-top:10px;background:var(--warn-dim);border:1px solid rgba(255,107,53,0.25);border-radius:var(--r-sm);padding:8px 10px;font-size:12px;color:var(--warn);">⚠️ Target kalori di bawah 1.200 kkal/hari tidak aman. Kurangi defisit Anda.</div>' : ''}
+    </div>`;
+}
+
+// ── HISTORY ──
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  const days = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const k = `hist_${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+    const raw = localStorage.getItem(k);
+    if (raw) {
+      const data = JSON.parse(raw);
+      days.push({ date: d, data });
+    }
+  }
+
+  if (days.length === 0) {
+    container.innerHTML = '<div class="empty-hist">Belum ada riwayat.<br>Mulai catat makanan hari ini!</div>';
+    return;
+  }
+
+  const days2 = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
+  const months2 = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+  container.innerHTML = days.map(({date, data}) => {
+    const rem = data.rem;
+    const isDeficit = rem >= 0;
+    return `<div class="history-day">
+      <div>
+        <div class="hist-date">${days2[date.getDay()]}, ${date.getDate()} ${months2[date.getMonth()]}</div>
+        <div class="hist-sub">${data.totalKal.toLocaleString('id')} / ${data.target.toLocaleString('id')} kkal</div>
+      </div>
+      <span class="hist-badge ${isDeficit ? 'def' : 'sur'}">${isDeficit ? '−' + Math.abs(rem).toLocaleString('id') : '+' + Math.abs(rem).toLocaleString('id')} kkal</span>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL ──
+function openModal(mealKey, mealLabel) {
+  currentMealType = mealKey;
+  currentBase64 = null;
+  pendingResult = null;
+  document.getElementById('modal-title').textContent = 'Foto ' + mealLabel;
+  document.getElementById('modal-sub').textContent = 'AI akan menghitung kalori secara otomatis';
+  document.getElementById('modal-file-input').value = '';
+  document.getElementById('modal-preview').style.display = 'none';
+  document.getElementById('modal-analyze-btn').disabled = true;
+  document.getElementById('modal-phase-upload').style.display = 'block';
+  document.getElementById('modal-phase-loading').style.display = 'none';
+  document.getElementById('modal-phase-result').style.display = 'none';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+function retakePhoto() {
+  document.getElementById('modal-phase-result').style.display = 'none';
+  document.getElementById('modal-phase-upload').style.display = 'block';
+  document.getElementById('modal-file-input').value = '';
+  document.getElementById('modal-preview').style.display = 'none';
+  document.getElementById('modal-analyze-btn').disabled = true;
+  currentBase64 = null;
+}
+
+document.getElementById('modal-file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  currentMime = 'image/jpeg';
+
+  // Kompres gambar sebelum dikirim — max 800px, quality 0.7
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const MAX = 800;
+      let w = img.width, h = img.height;
+      if (w > h) { if (w > MAX) { h = Math.round(h * MAX/w); w = MAX; } }
+      else { if (h > MAX) { w = Math.round(w * MAX/h); h = MAX; } }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.7);
+      currentBase64 = compressed.split(',')[1];
+      const previewImg = document.getElementById('modal-preview');
+      previewImg.src = compressed;
+      previewImg.style.display = 'block';
+      document.getElementById('modal-analyze-btn').disabled = false;
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('modal-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-overlay')) closeModal();
+});
+
+const loadMsgs = [
+  'Mendeteksi jenis makanan...',
+  'Menghitung kandungan gizi...',
+  'Memperkirakan porsi...',
+  'Menyusun data kalori...'
+];
+
+async function analyzePhoto() {
+  if (!currentBase64) return;
+  document.getElementById('modal-phase-upload').style.display = 'none';
+  document.getElementById('modal-phase-loading').style.display = 'block';
+
+  let mi = 0;
+  const lt = document.getElementById('modal-loading-text');
+  const interval = setInterval(() => { mi = (mi+1)%loadMsgs.length; lt.textContent = loadMsgs[mi]; }, 1800);
+
+  try {
+    let respRaw;
+    try {
+      respRaw = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          imageBase64: currentBase64,
+          mimeType: currentMime,
+          mealType: currentMealType
+        })
+      });
+    } catch(fetchErr) {
+      throw new Error('Koneksi gagal: ' + fetchErr.message + '. Cek koneksi internet Anda.');
+    }
+
+    clearInterval(interval);
+
+    const responseText = await respRaw.text();
+
+    if (!respRaw.ok) {
+      let errMsg = 'Server error ' + respRaw.status;
+      try { errMsg = JSON.parse(responseText).error || errMsg; } catch(e) {}
+      throw new Error(errMsg);
+    }
+
+    let data;
+    try { data = JSON.parse(responseText); } catch(e) { throw new Error('Response tidak valid: ' + responseText.substring(0,100)); }
+
+    if (data.error) throw new Error(data.error);
+
+    const parsed = JSON.parse(data.result);
+    if (parsed.error) { alert(parsed.error); closeModal(); return; }
+
+    pendingResult = parsed;
+    document.getElementById('res-name').textContent = parsed.nama_makanan;
+    document.getElementById('res-kcal').textContent = parsed.total_kalori;
+    document.getElementById('res-carb').textContent = parsed.karbohidrat_g;
+    document.getElementById('res-prot').textContent = parsed.protein_g;
+    document.getElementById('res-fat').textContent  = parsed.lemak_g;
+    document.getElementById('modal-result-preview').style.display = 'block';
+
+    document.getElementById('modal-phase-loading').style.display = 'none';
+    document.getElementById('modal-phase-result').style.display = 'block';
+
+  } catch(err) {
+    clearInterval(interval);
+    document.getElementById('modal-phase-loading').style.display = 'none';
+    document.getElementById('modal-phase-upload').style.display = 'block';
+    alert('Gagal menganalisis: ' + err.message);
+  }
+}
+
+function confirmAdd() {
+  if (!pendingResult || !currentMealType) return;
+  const log = getTodayLog();
+
+  const items = pendingResult.item || [{ nama: pendingResult.nama_makanan, porsi: pendingResult.porsi || '1 porsi', kalori: pendingResult.total_kalori, karbo: pendingResult.karbohidrat_g, protein: pendingResult.protein_g, lemak: pendingResult.lemak_g }];
+  items.forEach(it => {
+    log[currentMealType].push({
+      nama: it.nama, porsi: it.porsi || '',
+      kalori: it.kalori || 0, karbo: it.karbo || 0,
+      protein: it.protein || 0, lemak: it.lemak || 0
+    });
+  });
+
+  saveTodayLog(log);
+  closeModal();
+  renderMeals();
+  updateTotals();
+  renderHistory();
+}
+
+// ── NAV ──
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  const secMap = { dashboard: 'sec-dashboard', profile: 'sec-profile', history: 'sec-history', onboard: 'sec-onboard' };
+  const navMap = { dashboard: 'nav-dash', profile: 'nav-profile', history: 'nav-history' };
+
+  document.getElementById(secMap[name])?.classList.add('active');
+  if (navMap[name]) document.getElementById(navMap[name])?.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── AUTH GATE ──
+const SUPABASE_URL = 'https://xvskzrnvkhmjypaoyxvc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2c2t6cm52a2htanlwYW95eHZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTE0MDgsImV4cCI6MjA5MjA4NzQwOH0.kpsuHg939K7WCjTIFqGgeuQSF0vjSfgkkvGWeYXSsHg';
+function checkAuth() {
+  const user = localStorage.getItem('kc_user');
+  if (!user) { window.location.href = 'index.html'; return false; }
+  return true;
+}
+
+function getUser() {
+  const u = localStorage.getItem('kc_user');
+  return u ? JSON.parse(u) : null;
+}
+
+function doLogout() {
+  if (!confirm('Keluar dari KaloriCut?')) return;
+  localStorage.removeItem('kc_user');
+  window.location.href = 'index.html';
+}
+
+// ── INIT ──
+window.addEventListener('load', () => {
+  if (!checkAuth()) return;
+
+  // Tampilkan nama user di chip
+  const user = getUser();
+  if (user && user.nama) {
+    const chip = document.getElementById('chip-name');
+    if (chip) chip.textContent = user.nama.split(' ')[0];
+  }
+
+  const saved = localStorage.getItem('kc_profile');
+  if (saved) {
+    profile = JSON.parse(saved);
+    initDashboard();
+  }
+
+  // Register service worker
+  // Service worker dinonaktifkan untuk menghindari cache masalah
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => {
+      regs.forEach(reg => reg.unregister());
+    });
+  }
+});
+
+// ── PWA INSTALL PROMPT ──
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (!localStorage.getItem('kc_install_dismissed')) {
+    const banner = document.getElementById('install-banner');
+    banner.style.display = 'flex';
+  }
+});
+
+document.getElementById('install-btn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  document.getElementById('install-banner').style.display = 'none';
+});
+
+function dismissInstall() {
+  document.getElementById('install-banner').style.display = 'none';
+  localStorage.setItem('kc_install_dismissed', '1');
+}
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('install-banner').style.display = 'none';
+});
+</script>
+</body>
+</html>

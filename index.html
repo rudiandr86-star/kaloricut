@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>KaloriCut — Lacak Kalori, Turun Berat Badan</title>
+<meta name="description" content="Foto makanan Anda, AI hitung kalorinya. Lacak defisit kalori harian dan turun berat badan dengan cara yang menyenangkan."/>
+<meta name="theme-color" content="#0e0f0d"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<link rel="icon" type="image/png" href="icon-192.png"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&family=Fraunces:opsz,wght@9..144,300;400;600&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0e0f0d;--s:#161714;--s2:#1e1f1c;--s3:#272824;--b:rgba(255,255,255,0.07);--b2:rgba(255,255,255,0.13);--t:#f0efe8;--t2:#9a9a8e;--t3:#5a5a52;--a:#c8f55a;--ad:rgba(200,245,90,0.12);--at:#1a2600;--w:#ff6b35;--r:12px;--rs:8px}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--t);line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;background:rgba(14,15,13,0.85);backdrop-filter:blur(16px);border-bottom:1px solid var(--b)}
+.logo{font-family:'Fraunces',serif;font-size:20px;font-weight:600;color:var(--a);letter-spacing:-0.5px}
+.logo span{color:var(--t2);font-weight:300}
+.nav-cta{background:var(--a);color:var(--at);border:none;border-radius:20px;padding:8px 18px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.nav-cta:hover{opacity:.88}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:100px 24px 60px;position:relative;overflow:hidden}
+.hero-glow{position:absolute;top:20%;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(ellipse,rgba(200,245,90,0.07) 0%,transparent 70%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:var(--ad);border:1px solid rgba(200,245,90,0.2);border-radius:20px;padding:6px 14px;font-size:12px;color:var(--a);font-family:'DM Mono',monospace;margin-bottom:24px}
+.hero-badge .pulse{width:6px;height:6px;background:var(--a);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.8)}}
+.hero h1{font-family:'Fraunces',serif;font-size:clamp(36px,8vw,64px);font-weight:400;line-height:1.1;margin-bottom:20px;max-width:700px}
+.hero h1 em{font-style:italic;color:var(--a)}
+.hero p{font-size:clamp(15px,2.5vw,18px);color:var(--t2);max-width:480px;margin-bottom:36px;line-height:1.7}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn-primary{background:var(--a);color:var(--at);border:none;border-radius:var(--r);padding:15px 32px;font-size:16px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s}
+.btn-primary:hover{opacity:.9}
+.btn-primary:active{transform:scale(.98)}
+.btn-secondary{background:transparent;color:var(--t);border:1px solid var(--b2);border-radius:var(--r);padding:15px 28px;font-size:15px;cursor:pointer;transition:border-color .2s}
+.btn-secondary:hover{border-color:var(--a);color:var(--a)}
+.hero-sub{margin-top:20px;font-size:12px;color:var(--t3);font-family:'DM Mono',monospace}
+
+/* MOCKUP PHONE */
+.phone-wrap{margin-top:60px;position:relative;display:inline-block}
+.phone-frame{width:260px;background:var(--s);border:1px solid var(--b2);border-radius:36px;padding:16px;box-shadow:0 40px 80px rgba(0,0,0,0.6);overflow:hidden}
+.phone-notch{width:80px;height:6px;background:var(--s3);border-radius:3px;margin:0 auto 16px}
+.phone-screen{background:var(--bg);border-radius:24px;padding:16px;min-height:380px}
+.ps-logo{font-family:'Fraunces',serif;font-size:16px;color:var(--a);margin-bottom:12px}
+.ps-logo span{color:var(--t2);font-weight:300}
+.ps-date{font-size:10px;color:var(--t3);font-family:'DM Mono',monospace;margin-bottom:12px}
+.ps-ring{background:var(--s);border-radius:12px;padding:12px;display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.ps-ring svg{flex-shrink:0}
+.ps-ring-info .big{font-family:'Fraunces',serif;font-size:24px;color:var(--t);line-height:1}
+.ps-ring-info .lbl{font-size:9px;color:var(--t2)}
+.ps-ring-info .rem{font-size:14px;font-weight:600;color:var(--a);margin-top:4px}
+.ps-macros{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.ps-mac{background:var(--s);border-radius:8px;padding:8px;text-align:center}
+.ps-mac .v{font-size:14px;font-weight:600;font-family:'Fraunces',serif}
+.ps-mac .n{font-size:9px;color:var(--t2);margin-top:2px}
+.ps-meal{background:var(--s);border-radius:8px;padding:10px;display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ps-meal-l{display:flex;align-items:center;gap:8px}
+.ps-meal-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px}
+.ps-meal-name{font-size:11px;font-weight:500}
+.ps-meal-time{font-size:9px;color:var(--t3)}
+.ps-meal-kal{font-size:12px;font-weight:600;color:var(--a);font-family:'DM Mono',monospace}
+.phone-shine{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,rgba(255,255,255,0.03) 0%,transparent 50%);border-radius:36px;pointer-events:none}
+
+/* FEATURES */
+.section{padding:80px 24px;max-width:1000px;margin:0 auto}
+.section-tag{font-size:11px;color:var(--a);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px}
+.section-title{font-family:'Fraunces',serif;font-size:clamp(28px,5vw,44px);font-weight:400;line-height:1.2;margin-bottom:16px}
+.section-title em{font-style:italic;color:var(--a)}
+.section-sub{font-size:15px;color:var(--t2);max-width:480px;line-height:1.7;margin-bottom:48px}
+
+.features-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.feat-card{background:var(--s);border:1px solid var(--b);border-radius:16px;padding:24px;transition:border-color .2s}
+.feat-card:hover{border-color:rgba(200,245,90,0.25)}
+.feat-icon{font-size:28px;margin-bottom:14px}
+.feat-title{font-size:16px;font-weight:500;margin-bottom:8px}
+.feat-desc{font-size:13px;color:var(--t2);line-height:1.6}
+
+/* HOW IT WORKS */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:24px;margin-top:48px}
+.step{text-align:center}
+.step-num{width:44px;height:44px;border-radius:50%;background:var(--ad);border:1px solid rgba(200,245,90,0.2);display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:20px;color:var(--a);margin:0 auto 16px}
+.step-title{font-size:15px;font-weight:500;margin-bottom:6px}
+.step-desc{font-size:13px;color:var(--t2)}
+
+/* PRICING */
+.pricing-wrap{max-width:400px;margin:0 auto;padding-top:16px}
+.pricing-card{background:var(--s);border:1px solid rgba(200,245,90,0.3);border-radius:20px;padding:32px;text-align:center;position:relative;overflow:hidden}
+.pricing-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--a)}
+.pricing-popular{display:inline-block;background:var(--a);color:var(--at);font-size:11px;font-weight:700;padding:4px 14px;border-radius:20px;margin-bottom:16px;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.05em}
+.pricing-name{font-family:'Fraunces',serif;font-size:24px;font-weight:400;margin-bottom:6px}
+.pricing-price{font-family:'Fraunces',serif;font-size:52px;font-weight:400;color:var(--a);line-height:1}
+.pricing-per{font-size:14px;color:var(--t2);margin-bottom:24px}
+.pricing-features{list-style:none;margin-bottom:28px;text-align:left}
+.pricing-features li{font-size:14px;padding:8px 0;border-bottom:1px solid var(--b);display:flex;gap:10px;align-items:flex-start}
+.pricing-features li:last-child{border-bottom:none}
+.pricing-features .check{color:var(--a);font-size:14px;flex-shrink:0;margin-top:2px}
+.pricing-cta{width:100%;padding:15px;background:var(--a);color:var(--at);border:none;border-radius:var(--r);font-size:16px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.pricing-cta:hover{opacity:.9}
+.pricing-note{font-size:12px;color:var(--t3);margin-top:12px}
+
+/* INSTALL SECTION */
+.install-section{background:var(--s);border:1px solid var(--b);border-radius:20px;padding:32px;max-width:500px;margin:0 auto;text-align:center}
+.install-steps{display:flex;flex-direction:column;gap:12px;margin:24px 0;text-align:left}
+.install-step{display:flex;gap:12px;align-items:flex-start}
+.install-step-num{width:24px;height:24px;border-radius:50%;background:var(--ad);border:1px solid rgba(200,245,90,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--a);flex-shrink:0;margin-top:2px}
+.install-step-text{font-size:13px;color:var(--t2);line-height:1.6}
+.install-step-text strong{color:var(--t)}
+
+/* TESTIMONIALS */
+.testi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.testi-card{background:var(--s);border:1px solid var(--b);border-radius:16px;padding:20px}
+.testi-stars{color:var(--a);font-size:14px;margin-bottom:10px;letter-spacing:2px}
+.testi-text{font-size:14px;color:var(--t2);line-height:1.7;margin-bottom:14px;font-style:italic}
+.testi-name{font-size:13px;font-weight:500}
+.testi-loc{font-size:11px;color:var(--t3)}
+
+/* FAQ */
+.faq-list{max-width:600px;margin:0 auto}
+.faq-item{border-bottom:1px solid var(--b);padding:20px 0;cursor:pointer}
+.faq-q{font-size:15px;font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:16px}
+.faq-q .arr{color:var(--t3);font-size:18px;transition:transform .2s;flex-shrink:0}
+.faq-item.open .arr{transform:rotate(45deg)}
+.faq-a{font-size:14px;color:var(--t2);line-height:1.7;max-height:0;overflow:hidden;transition:max-height .3s,padding .2s}
+.faq-item.open .faq-a{max-height:200px;padding-top:10px}
+
+/* CTA BOTTOM */
+.cta-bottom{background:var(--ad);border:1px solid rgba(200,245,90,.15);border-radius:20px;padding:48px 32px;text-align:center;max-width:600px;margin:0 auto}
+.cta-bottom h2{font-family:'Fraunces',serif;font-size:clamp(24px,4vw,38px);font-weight:400;margin-bottom:12px}
+.cta-bottom h2 em{font-style:italic;color:var(--a)}
+.cta-bottom p{color:var(--t2);margin-bottom:28px}
+
+/* FOOTER */
+footer{border-top:1px solid var(--b);padding:32px 24px;text-align:center;font-size:12px;color:var(--t3)}
+footer a{color:var(--t2)}
+
+/* AUTH MODAL */
+.auth-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;padding:20px}
+.auth-overlay.open{opacity:1;pointer-events:all}
+.auth-box{background:var(--s);border:1px solid var(--b2);border-radius:20px;padding:32px;width:100%;max-width:400px;transform:translateY(16px);transition:transform .25s}
+.auth-overlay.open .auth-box{transform:translateY(0)}
+.auth-title{font-family:'Fraunces',serif;font-size:24px;font-weight:400;margin-bottom:4px}
+.auth-sub{font-size:13px;color:var(--t2);margin-bottom:24px}
+.auth-tabs{display:flex;gap:0;background:var(--s2);border-radius:var(--rs);padding:4px;margin-bottom:24px}
+.auth-tab{flex:1;padding:9px;text-align:center;font-size:13px;font-weight:500;cursor:pointer;border-radius:6px;transition:all .2s;color:var(--t2);background:none;border:none}
+.auth-tab.active{background:var(--s3);color:var(--t)}
+.form-group{margin-bottom:16px}
+.form-label{font-size:11px;font-weight:500;color:var(--t2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;display:block}
+.form-input{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:12px 14px;color:var(--t);font-size:15px;outline:none;transition:border-color .2s;font-family:'DM Sans',sans-serif}
+.form-input:focus{border-color:var(--a)}
+.auth-btn{width:100%;padding:13px;background:var(--a);color:var(--at);border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;margin-top:4px;transition:opacity .2s}
+.auth-btn:hover{opacity:.9}
+.auth-btn:disabled{opacity:.45;cursor:not-allowed}
+.auth-err{font-size:13px;color:var(--w);margin-top:10px;text-align:center;min-height:20px}
+.auth-close{position:absolute;top:16px;right:20px;background:none;border:none;color:var(--t3);font-size:22px;cursor:pointer}
+.auth-box{position:relative}
+
+/* PAYMENT MODAL */
+.pay-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:flex-end;justify-content:center;z-index:300;opacity:0;pointer-events:none;transition:opacity .25s}
+.pay-overlay.open{opacity:1;pointer-events:all}
+.pay-box{background:var(--s);border:1px solid var(--b2);border-radius:20px 20px 0 0;padding:28px 24px 40px;width:100%;max-width:480px;transform:translateY(20px);transition:transform .25s}
+.pay-overlay.open .pay-box{transform:translateY(0)}
+.pay-title{font-family:'Fraunces',serif;font-size:22px;font-weight:400;margin-bottom:4px}
+.pay-sub{font-size:13px;color:var(--t2);margin-bottom:24px}
+.pay-summary{background:var(--s2);border:1px solid var(--b2);border-radius:var(--r);padding:16px;margin-bottom:20px}
+.pay-row{display:flex;justify-content:space-between;font-size:14px;padding:6px 0}
+.pay-row.total{font-weight:600;font-size:16px;border-top:1px solid var(--b);padding-top:12px;margin-top:6px}
+.pay-row.total .amt{color:var(--a);font-family:'Fraunces',serif;font-size:22px}
+.pay-methods{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+.pay-method{background:var(--s2);border:1px solid var(--b2);border-radius:var(--rs);padding:12px;text-align:center;cursor:pointer;transition:all .2s;font-size:13px;color:var(--t2)}
+.pay-method.selected{border-color:var(--a);color:var(--a);background:var(--ad)}
+.pay-method .pm-icon{font-size:20px;display:block;margin-bottom:4px}
+.pay-cta{width:100%;padding:14px;background:var(--a);color:var(--at);border:none;border-radius:var(--r);font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s}
+.pay-cta:hover{opacity:.9}
+.pay-cta:disabled{opacity:.45;cursor:not-allowed}
+.pay-close{position:absolute;top:16px;right:20px;background:none;border:none;color:var(--t3);font-size:22px;cursor:pointer}
+.pay-box{position:relative}
+.pay-note{font-size:11px;color:var(--t3);text-align:center;margin-top:12px}
+
+/* LOADING OVERLAY */
+.loading-overlay{position:fixed;inset:0;background:rgba(14,15,13,.95);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:400;opacity:0;pointer-events:none;transition:opacity .2s}
+.loading-overlay.open{opacity:1;pointer-events:all}
+.lo-spinner{width:40px;height:40px;border:3px solid var(--s3);border-top-color:var(--a);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lo-text{font-size:15px;color:var(--t2)}
+
+@media(max-width:600px){
+  .hero{padding:90px 20px 50px}
+  .section{padding:60px 20px}
+  .cta-bottom{padding:36px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">Kalori<span>Cut</span></div>
+  <button class="nav-cta" onclick="openAuth('daftar')">Mulai Gratis</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-badge"><span class="pulse"></span> AI-powered · Berbasis foto</div>
+  <h1>Foto makanan,<br><em>hitung kalori,</em><br>turun berat badan.</h1>
+  <p>KaloriCut menggunakan AI untuk mengenali makanan dari foto dan menghitung kalori secara otomatis. Lacak sarapan, makan siang, camilan, dan makan malam Anda setiap hari.</p>
+  <div class="hero-btns">
+    <button class="btn-primary" onclick="openAuth('daftar')">Coba Gratis 7 Hari →</button>
+    <button class="btn-secondary" onclick="document.getElementById('cara-kerja').scrollIntoView({behavior:'smooth'})">Lihat cara kerjanya</button>
+  </div>
+  <p class="hero-sub">Rp 19.000/bulan setelah masa coba · Batalkan kapan saja</p>
+
+  <!-- Phone mockup -->
+  <div class="phone-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-screen">
+        <div class="ps-logo">Kalori<span>Cut</span></div>
+        <div class="ps-date">SAB, 18 APR 2026</div>
+        <div class="ps-ring">
+          <svg width="64" height="64" viewBox="0 0 64 64" style="transform:rotate(-90deg)">
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#272824" stroke-width="5"/>
+            <circle cx="32" cy="32" r="26" fill="none" stroke="#c8f55a" stroke-width="5" stroke-linecap="round" stroke-dasharray="163" stroke-dashoffset="60"/>
+          </svg>
+          <div class="ps-ring-info">
+            <div class="big">1.240</div>
+            <div class="lbl">TARGET HARIAN</div>
+            <div class="rem">480 kkal tersisa</div>
+          </div>
+        </div>
+        <div class="ps-macros">
+          <div class="ps-mac"><div class="v" style="color:#7eb8ff">124g</div><div class="n">Karbo</div></div>
+          <div class="ps-mac"><div class="v" style="color:#c8f55a">68g</div><div class="n">Protein</div></div>
+          <div class="ps-mac"><div class="v" style="color:#ffb347">32g</div><div class="n">Lemak</div></div>
+        </div>
+        <div class="ps-meal"><div class="ps-meal-l"><div class="ps-meal-icon" style="background:rgba(255,200,50,.15)">🌅</div><div><div class="ps-meal-name">Sarapan</div><div class="ps-meal-time">06.00–09.00</div></div></div><div class="ps-meal-kal">380</div></div>
+        <div class="ps-meal"><div class="ps-meal-l"><div class="ps-meal-icon" style="background:rgba(255,100,50,.15)">🍚</div><div><div class="ps-meal-name">Makan Siang</div><div class="ps-meal-time">11.00–13.00</div></div></div><div class="ps-meal-kal">480</div></div>
+        <div class="ps-meal"><div class="ps-meal-l"><div class="ps-meal-icon" style="background:rgba(100,200,100,.15)">🍌</div><div><div class="ps-meal-name">Camilan</div><div class="ps-meal-time">Kapan saja</div></div></div><div class="ps-meal-kal" style="color:var(--t3)">—</div></div>
+      </div>
+    </div>
+    <div class="phone-shine"></div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="fitur">
+  <div class="section-tag">Fitur Unggulan</div>
+  <h2 class="section-title">Semua yang Anda butuhkan<br>untuk <em>diet yang berhasil</em></h2>
+  <p class="section-sub">Tidak perlu hitung manual lagi. Foto, analisis, dan lacak — semua dalam satu aplikasi.</p>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">📸</div>
+      <div class="feat-title">Analisis Foto Makanan AI</div>
+      <div class="feat-desc">Foto makanan apa saja — nasi padang, mie goreng, soto, buah — AI mengenali dan menghitung kalori + makro secara otomatis.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🎯</div>
+      <div class="feat-title">Target Kalori Personal</div>
+      <div class="feat-desc">Dihitung dari BMR, tinggi, berat, usia, dan aktivitas Anda menggunakan rumus Mifflin-St Jeor yang akurat secara ilmiah.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <div class="feat-title">Lacak 5 Waktu Makan</div>
+      <div class="feat-desc">Sarapan, makan siang, camilan, minuman, makan malam — semua tercatat rapi dengan total kalori dan makro per hari.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔥</div>
+      <div class="feat-title">Defisit Kalori Real-time</div>
+      <div class="feat-desc">Langsung tahu apakah Anda dalam defisit atau surplus. Selamat jika defisit, peringatan jika melebihi target.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📅</div>
+      <div class="feat-title">Riwayat 14 Hari</div>
+      <div class="feat-desc">Pantau konsistensi diet Anda. Lihat hari mana defisit, hari mana surplus — dan perbaiki polanya.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">⚖️</div>
+      <div class="feat-title">Simulasi Turun Berat Badan</div>
+      <div class="feat-desc">Masukkan target berat dan defisit yang diinginkan — AI langsung hitung berapa minggu sampai target tercapai.</div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="cara-kerja" style="text-align:center">
+  <div class="section-tag">Cara Kerja</div>
+  <h2 class="section-title">Mulai dalam <em>3 langkah</em></h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title">Isi Data Diri</div>
+      <div class="step-desc">Masukkan usia, berat, tinggi, dan aktivitas. KaloriCut hitung otomatis TDEE dan target kalori Anda.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title">Foto Setiap Makanan</div>
+      <div class="step-desc">Setiap makan, ambil foto. AI langsung identifikasi makanan dan hitung kalori dalam hitungan detik.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title">Pantau Defisit</div>
+      <div class="step-desc">Lihat ring kalori yang terisi sepanjang hari. Capai defisit → dapat notifikasi selamat!</div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTALL -->
+<section class="section" id="install">
+  <div class="install-section">
+    <div class="section-tag" style="margin-bottom:8px">Instal di HP Anda</div>
+    <h2 style="font-family:'Fraunces',serif;font-size:24px;font-weight:400;margin-bottom:8px">Seperti app sungguhan,<br>tanpa ke Play Store</h2>
+    <p style="font-size:13px;color:var(--t2);margin-bottom:0">KaloriCut adalah PWA — bisa diinstal langsung dari browser Chrome di HP Android maupun Safari di iPhone.</p>
+    <div class="install-steps">
+      <div class="install-step"><div class="install-step-num">1</div><div class="install-step-text">Buka <strong>kaloricut.app</strong> di browser Chrome (Android) atau Safari (iPhone)</div></div>
+      <div class="install-step"><div class="install-step-num">2</div><div class="install-step-text">Tap ikon <strong>⋮ (tiga titik)</strong> di Chrome → pilih <strong>"Tambahkan ke layar utama"</strong></div></div>
+      <div class="install-step"><div class="install-step-num">3</div><div class="install-step-text">KaloriCut muncul di home screen — buka seperti app biasa, penuh layar, tanpa browser bar</div></div>
+    </div>
+    <button class="btn-primary" style="width:100%" onclick="openAuth('daftar')">Mulai Sekarang →</button>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="section">
+  <div class="section-tag" style="text-align:center">Testimoni</div>
+  <h2 class="section-title" style="text-align:center">Mereka sudah <em>merasakannya</em></h2>
+  <div class="testi-grid" style="margin-top:32px">
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text">"Akhirnya ada app kalori yang paham makanan Indonesia! Nasi padang, soto, gado-gado langsung dikenali. Turun 4 kg dalam 2 bulan."</div>
+      <div class="testi-name">Rina S.</div>
+      <div class="testi-loc">Makassar</div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text">"Gampang banget, tinggal foto terus langsung ketahuan kalorinya. Saya nggak perlu mikir panjang soal diet lagi."</div>
+      <div class="testi-name">Budi W.</div>
+      <div class="testi-loc">Surabaya</div>
+    </div>
+    <div class="testi-card">
+      <div class="testi-stars">★★★★★</div>
+      <div class="testi-text">"Harganya sangat terjangkau untuk fitur yang lengkap banget. Simulasi turun berat badan-nya memotivasi saya tiap hari."</div>
+      <div class="testi-name">Sari A.</div>
+      <div class="testi-loc">Jakarta</div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="harga" style="text-align:center">
+  <div class="section-tag">Harga</div>
+  <h2 class="section-title">Sederhana, <em>terjangkau</em></h2>
+  <p class="section-sub" style="margin:0 auto 40px">Satu paket, semua fitur. Tidak ada biaya tersembunyi.</p>
+  <div class="pricing-wrap">
+    <div class="pricing-card">
+      <div class="pricing-popular">Paling Populer</div>
+      <div class="pricing-name">KaloriCut Pro</div>
+      <div class="pricing-price">Rp19.000</div>
+      <div class="pricing-per">per bulan · coba gratis 7 hari</div>
+      <ul class="pricing-features">
+        <li><span class="check">✓</span> Analisis foto makanan AI tanpa batas</li>
+        <li><span class="check">✓</span> Lacak 5 waktu makan per hari</li>
+        <li><span class="check">✓</span> Target kalori & TDEE personal</li>
+        <li><span class="check">✓</span> Riwayat 14 hari + grafik defisit</li>
+        <li><span class="check">✓</span> Simulasi turun berat badan</li>
+        <li><span class="check">✓</span> Instal di HP (PWA) — seperti app sungguhan</li>
+        <li><span class="check">✓</span> Update fitur terbaru otomatis</li>
+      </ul>
+      <button class="pricing-cta" onclick="openAuth('daftar')">Mulai Uji Coba Gratis 7 Hari</button>
+      <div class="pricing-note">Batalkan kapan saja · Tidak perlu kartu kredit untuk mulai</div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section">
+  <div class="section-tag" style="text-align:center">FAQ</div>
+  <h2 class="section-title" style="text-align:center;margin-bottom:32px">Pertanyaan <em>yang sering ditanya</em></h2>
+  <div class="faq-list">
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Apakah KaloriCut akurat untuk makanan Indonesia? <span class="arr">+</span></div>
+      <div class="faq-a">Ya! AI KaloriCut dilatih untuk mengenali berbagai makanan Indonesia seperti nasi padang, soto, rendang, mie goreng, gado-gado, dan ratusan makanan lokal lainnya. Estimasi kalori berdasarkan porsi visual yang terlihat di foto.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Bagaimana cara menginstal di HP saya? <span class="arr">+</span></div>
+      <div class="faq-a">Buka kaloricut.app di Chrome (Android) atau Safari (iPhone) → tap ikon menu → pilih "Tambahkan ke layar utama". KaloriCut akan muncul di home screen seperti aplikasi biasa, tanpa perlu Play Store atau App Store.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Apakah data saya aman? <span class="arr">+</span></div>
+      <div class="faq-a">Data Anda tersimpan di server yang aman dan terenkripsi. Kami tidak menjual atau membagikan data pribadi Anda kepada pihak ketiga manapun.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Bagaimana cara membatalkan langganan? <span class="arr">+</span></div>
+      <div class="faq-a">Anda bisa membatalkan kapan saja melalui halaman akun. Setelah dibatalkan, akses tetap berjalan hingga akhir periode langganan. Tidak ada biaya penalti.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-q">Metode pembayaran apa yang diterima? <span class="arr">+</span></div>
+      <div class="faq-a">Kami menerima transfer bank (BCA, Mandiri, BNI, BRI), dompet digital (GoPay, OVO, DANA, ShopeePay), QRIS, dan kartu kredit/debit Visa/Mastercard melalui Midtrans.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BOTTOM -->
+<section class="section">
+  <div class="cta-bottom">
+    <h2>Mulai <em>defisit kalori</em><br>hari ini juga</h2>
+    <p>Coba gratis 7 hari. Tidak perlu kartu kredit.</p>
+    <button class="btn-primary" onclick="openAuth('daftar')">Daftar Sekarang, Gratis →</button>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div style="margin-bottom:12px">
+    <span style="font-family:'Fraunces',serif;font-size:18px;color:var(--a)">Kalori<span style="color:var(--t2);font-weight:300">Cut</span></span>
+  </div>
+  <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;margin-bottom:16px">
+    <a href="#">Syarat & Ketentuan</a>
+    <a href="#">Kebijakan Privasi</a>
+    <a href="mailto:halo@kaloricut.app">Kontak</a>
+  </div>
+  <div>© 2026 KaloriCut. Dibuat dengan ❤️ di Indonesia.</div>
+</footer>
+
+<!-- AUTH MODAL -->
+<div class="auth-overlay" id="auth-overlay">
+  <div class="auth-box">
+    <button class="auth-close" onclick="closeAuth()">×</button>
+    <div class="auth-title" id="auth-title">Selamat Datang</div>
+    <div class="auth-sub" id="auth-sub">Daftar untuk mulai uji coba gratis 7 hari</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-daftar" onclick="switchTab('daftar')">Daftar</button>
+      <button class="auth-tab" id="tab-masuk" onclick="switchTab('masuk')">Masuk</button>
+    </div>
+    <div id="auth-form-daftar">
+      <div class="form-group">
+        <label class="form-label">Nama</label>
+        <input class="form-input" type="text" id="reg-nama" placeholder="Nama lengkap Anda"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="reg-email" placeholder="email@anda.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="reg-pass" placeholder="Min. 6 karakter"/>
+      </div>
+      <button class="auth-btn" id="btn-daftar" onclick="doRegister()">Daftar & Mulai Gratis →</button>
+    </div>
+    <div id="auth-form-masuk" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email" id="login-email" placeholder="email@anda.com"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="login-pass" placeholder="Password Anda"/>
+      </div>
+      <button class="auth-btn" id="btn-masuk" onclick="doLogin()">Masuk →</button>
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="pay-overlay" id="pay-overlay">
+  <div class="pay-box">
+    <button class="pay-close" onclick="closePay()">×</button>
+    <div class="pay-title">Aktifkan Langganan</div>
+    <div class="pay-sub">Pilih metode pembayaran Anda</div>
+    <div class="pay-summary">
+      <div class="pay-row"><span>KaloriCut Pro</span><span>1 bulan</span></div>
+      <div class="pay-row"><span>Masa uji coba</span><span style="color:var(--a)">7 hari gratis</span></div>
+      <div class="pay-row total"><span>Total hari ini</span><span class="amt">Rp 0</span></div>
+      <div style="font-size:11px;color:var(--t3);margin-top:6px">Rp 19.000 ditagih setelah 7 hari uji coba</div>
+    </div>
+    <div style="font-size:12px;color:var(--t2);margin-bottom:10px;font-weight:500">Pilih metode bayar:</div>
+    <div class="pay-methods">
+      <div class="pay-method selected" onclick="selectPayMethod(this,'qris')"><span class="pm-icon">⬛</span>QRIS</div>
+      <div class="pay-method" onclick="selectPayMethod(this,'gopay')"><span class="pm-icon">💚</span>GoPay</div>
+      <div class="pay-method" onclick="selectPayMethod(this,'transfer')"><span class="pm-icon">🏦</span>Transfer Bank</div>
+      <div class="pay-method" onclick="selectPayMethod(this,'kartu')"><span class="pm-icon">💳</span>Kartu Kredit</div>
+    </div>
+    <button class="pay-cta" id="pay-cta-btn" onclick="doPayment()">Konfirmasi & Mulai Gratis →</button>
+    <div class="pay-note">Pembayaran diproses aman via Midtrans · SSL Terenkripsi</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading-overlay">
+  <div class="lo-spinner"></div>
+  <div class="lo-text" id="lo-text">Memproses...</div>
+</div>
+
+<script>
+// ── KONFIGURASI — GANTI DENGAN KEY ANDA ──
+const CONFIG = {
+  // Supabase: daftar di supabase.com, buat project baru, salin dari Settings > API
+  SUPABASE_URL: 'https://xvskzrnvkhmjypaoyxvc.supabase.co',
+  SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2c2t6cm52a2htanlwYW95eHZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1MTE0MDgsImV4cCI6MjA5MjA4NzQwOH0.kpsuHg939K7WCjTIFqGgeuQSF0vjSfgkkvGWeYXSsHg',
+  // Midtrans: daftar di midtrans.com, salin Client Key dari Dashboard > Settings > Access Keys
+  MIDTRANS_CLIENT_KEY: 'GANTI_DENGAN_MIDTRANS_CLIENT_KEY_ANDA',
+  // Harga langganan dalam Rupiah
+  HARGA: 19000,
+  NAMA_PRODUK: 'KaloriCut Pro',
+  TRIAL_HARI: 7,
+};
+
+// ── AUTH MODAL ──
+function openAuth(tab='daftar') {
+  switchTab(tab);
+  document.getElementById('auth-overlay').classList.add('open');
+}
+function closeAuth() {
+  document.getElementById('auth-overlay').classList.remove('open');
+}
+function switchTab(tab) {
+  document.getElementById('auth-form-daftar').style.display = tab==='daftar' ? 'block' : 'none';
+  document.getElementById('auth-form-masuk').style.display  = tab==='masuk'  ? 'block' : 'none';
+  document.getElementById('tab-daftar').classList.toggle('active', tab==='daftar');
+  document.getElementById('tab-masuk').classList.toggle('active',  tab==='masuk');
+  document.getElementById('auth-err').textContent = '';
+}
+
+async function doRegister() {
+  const nama  = document.getElementById('reg-nama').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-pass').value;
+  const errEl = document.getElementById('auth-err');
+
+  if (!nama || !email || !pass) { errEl.textContent = 'Semua kolom wajib diisi.'; return; }
+  if (pass.length < 6) { errEl.textContent = 'Password minimal 6 karakter.'; return; }
+
+  const btn = document.getElementById('btn-daftar');
+  btn.disabled = true; btn.textContent = 'Mendaftar...';
+
+  try {
+    const res = await supabaseSignUp(email, pass, nama);
+    if (res.error) throw new Error(res.error.message);
+    closeAuth();
+    showLoading('Akun berhasil dibuat! Mempersiapkan...');
+    setTimeout(() => { hideLoading(); openPay(); }, 1200);
+  } catch(e) {
+    errEl.textContent = e.message === 'User already registered' ? 'Email sudah terdaftar. Silakan masuk.' : e.message;
+  } finally { btn.disabled = false; btn.textContent = 'Daftar & Mulai Gratis →'; }
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('auth-err');
+
+  if (!email || !pass) { errEl.textContent = 'Isi email dan password.'; return; }
+
+  const btn = document.getElementById('btn-masuk');
+  btn.disabled = true; btn.textContent = 'Masuk...';
+
+  try {
+    const res = await supabaseSignIn(email, pass);
+    if (res.error) throw new Error(res.error.message);
+    closeAuth();
+    showLoading('Berhasil masuk! Mengalihkan ke aplikasi...');
+    setTimeout(() => { hideLoading(); window.location.href = 'app.html'; }, 1000);
+  } catch(e) {
+    errEl.textContent = 'Email atau password salah.';
+  } finally { btn.disabled = false; btn.textContent = 'Masuk →'; }
+}
+
+// ── PAYMENT MODAL ──
+let selectedMethod = 'qris';
+function openPay() { document.getElementById('pay-overlay').classList.add('open'); }
+function closePay() { document.getElementById('pay-overlay').classList.remove('open'); }
+function selectPayMethod(el, method) {
+  selectedMethod = method;
+  document.querySelectorAll('.pay-method').forEach(m => m.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function doPayment() {
+  const btn = document.getElementById('pay-cta-btn');
+  btn.disabled = true; btn.textContent = 'Memproses...';
+  showLoading('Menghubungkan ke payment gateway...');
+
+  try {
+    // === MIDTRANS INTEGRATION ===
+    // Untuk produksi, Snap token harus dibuat di SERVER (bukan di client)
+    // Ini adalah contoh flow — implementasikan endpoint backend Anda sendiri:
+    //
+    // const resp = await fetch('/api/create-payment', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ amount: CONFIG.HARGA, method: selectedMethod })
+    // });
+    // const { snapToken } = await resp.json();
+    // window.snap.pay(snapToken, { onSuccess: () => activateSubscription() });
+    //
+    // Untuk DEMO: simulasi sukses setelah 2 detik
+    await new Promise(r => setTimeout(r, 2000));
+    hideLoading();
+    closePay();
+    alert('✅ Pembayaran berhasil! Uji coba 7 hari Anda telah dimulai.\n\nAnda akan diarahkan ke aplikasi.');
+    window.location.href = 'app.html';
+
+  } catch(e) {
+    hideLoading();
+    alert('Pembayaran gagal: ' + e.message);
+  } finally { btn.disabled = false; btn.textContent = 'Konfirmasi & Mulai Gratis →'; }
+}
+
+// ── SUPABASE HELPERS ──
+async function supabaseSignUp(email, password, nama) {
+  const r = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/signup`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+    body: JSON.stringify({ email, password, data: { nama } })
+  });
+  const json = await r.json();
+  // Supabase returns user in json.user or json.data.user
+  if (json.user || (json.data && json.data.user)) {
+    const user = json.user || json.data.user;
+    localStorage.setItem('kc_user', JSON.stringify({ email, nama, id: user.id }));
+    return { data: { user }, error: null };
+  }
+  return { error: json.error || json };
+}
+
+async function supabaseSignIn(email, password) {
+  const r = await fetch(`${CONFIG.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json', 'apikey': CONFIG.SUPABASE_ANON_KEY, 'Authorization': `Bearer ${CONFIG.SUPABASE_ANON_KEY}` },
+    body: JSON.stringify({ email, password })
+  });
+  const json = await r.json();
+  if (json.access_token) {
+    const nama = json.user?.user_metadata?.nama || email.split('@')[0];
+    localStorage.setItem('kc_user', JSON.stringify({ email, nama, id: json.user?.id, token: json.access_token }));
+    return { data: { user: json.user }, error: null };
+  }
+  return { error: { message: json.error_description || json.msg || 'Login gagal' } };
+}
+
+// ── LOADING ──
+function showLoading(txt) {
+  document.getElementById('lo-text').textContent = txt || 'Memproses...';
+  document.getElementById('loading-overlay').classList.add('open');
+}
+function hideLoading() {
+  document.getElementById('loading-overlay').classList.remove('open');
+}
+
+// ── FAQ ──
+function toggleFaq(el) { el.classList.toggle('open'); }
+
+// ── CLOSE ON OUTSIDE CLICK ──
+document.getElementById('auth-overlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('auth-overlay')) closeAuth();
+});
+
+// ── CEK SESSION — jika sudah login langsung ke app ──
+window.addEventListener('load', () => {
+  const user = localStorage.getItem('kc_user');
+  if (user) {
+    document.querySelector('.nav-cta').textContent = 'Buka Aplikasi';
+    document.querySelector('.nav-cta').onclick = () => { window.location.href = 'app.html'; };
+  }
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+});
+</script>
+</body>
+</html>
